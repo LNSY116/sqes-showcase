@@ -58,7 +58,7 @@
     $('topic-evidence').innerHTML=topic?`<p class="eyebrow">CUSTOMER EVIDENCE / 顧客原話</p><h4>${esc(topic.label)}</h4><p class="evidence-meta">${esc(c.case_id)} · ${esc(topic.kind)} · ${topic.evidence.length} 段支持發言</p><p class="topic-summary">${esc(topic.summary)}</p>${proof(c,topic.evidence,true).map(quoteMarkup).join('')}<div class="follow-up"><h5>跟進方向示意</h5><p>${esc(c.illustrative_follow_up)}</p></div>`:'<p class="empty">請選擇主題。</p>';
   }
   function renderExplorer(c) {
-    $('explorer-case').textContent=c?`${c.case_id} · ${c.advisor} · ${c.review_status} · 以下內容跟隨此案例`:'目前沒有符合篩選的案例';
+    $('explorer-case').textContent=c?`${c.case_id} · ${c.advisor} · ${c.review_status} · 虛構案例`:'目前沒有符合篩選的案例';
     $('explorer-select').replaceChildren(...visible.map(item=>{const option=document.createElement('option');option.value=item.case_id;option.textContent=`${item.case_id} · ${item.focus}`;return option;}));
     $('explorer-select').value=c?.case_id??'';
     ['explorer-select','check-status','expand-checks','collapse-checks'].forEach(id=>$(id).disabled=!c);
@@ -77,6 +77,7 @@
     const query = $('search').value.trim().toLocaleLowerCase();
     visible = data.filter(c => (!$('advisor').value || c.advisor === $('advisor').value) && (!$('status').value || c.review_status === $('status').value) && (!query || [c.case_id,c.advisor,c.focus].join(' ').toLocaleLowerCase().includes(query)));
     if (!visible.some(c => c.case_id === selected)) selected = visible[0]?.case_id ?? null;
+    document.querySelector('.filter-drawer > summary').textContent = `篩選案例 · ${visible.length} / ${data.length} 筆${$('advisor').value || $('status').value || query ? ' · 已套用條件' : ''}`;
     const reviewed = visible.filter(completed);
     $('count').textContent = visible.length;
     $('count-note').textContent = `全部 ${data.length} 筆虛構案例`;
@@ -106,6 +107,48 @@
     const a=document.createElement('a');a.href=url;a.download='SQES_Synthetic_Demo.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
     $('download-status').textContent=`已準備 ${visible.length} 筆虛構資料下載（JSON）。`;
   });
+  const viewNames = ['overview','charts','checklist','insights'];
+  const aliases = {demo:'overview','case-explorer':'checklist','checklist-panel':'checklist','insights-panel':'insights',home:'about',approach:'about'};
+  let currentView='overview';
+  function activateRoute(scroll=false) {
+    const hash=location.hash.slice(1), route=aliases[hash]||hash||'overview';
+    const page=route==='about'||route==='validation'?route:'workspace';
+    if(viewNames.includes(route))currentView=route;
+    document.querySelectorAll('[data-page]').forEach(el=>el.hidden=el.dataset.page!==page);
+    document.querySelectorAll('[data-view]').forEach(button=>{const active=button.dataset.view===currentView;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;});
+    viewNames.forEach(name=>$(name).hidden=name!==currentView);
+    document.querySelectorAll('header nav a').forEach(a=>{
+      const active=(page==='workspace'&&a.hash==='#overview')||a.hash==='#'+page;
+      if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');
+    });
+    if(scroll)window.scrollTo({top:0,behavior:'instant'});
+  }
+  function setRoute(route) {
+    if(location.hash!=='#'+route)history.pushState(null,'','#'+route);
+    activateRoute(true);
+  }
+  document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setRoute(b.dataset.view)));
+  document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',event=>{
+    const key=a.hash.slice(1);
+    if(viewNames.includes(key)||aliases[key]||key==='about'||key==='validation'){
+      event.preventDefault();setRoute(aliases[key]||key);
+      if(a.classList.contains('skip'))$(currentView).focus({preventScroll:true});
+      if(key==='approach')$('approach').scrollIntoView({behavior:'instant'});
+    }
+  }));
+  window.addEventListener('popstate',()=>activateRoute(true));
+  window.addEventListener('hashchange',()=>activateRoute(true));
+  function setInsightMode(key) {
+    document.querySelectorAll('[data-insight-mode]').forEach(b=>{const active=b.dataset.insightMode===key;b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;$('mode-'+b.dataset.insightMode).hidden=!active;});
+  }
+  document.querySelectorAll('[data-insight-mode]').forEach(b=>b.addEventListener('click',()=>setInsightMode(b.dataset.insightMode)));
+  document.querySelectorAll('[role="tablist"]').forEach(list=>list.addEventListener('keydown',event=>{
+    const buttons=[...list.querySelectorAll('[role="tab"]')], index=buttons.indexOf(document.activeElement);
+    if(index<0||!['ArrowRight','ArrowLeft','Home','End'].includes(event.key))return;
+    event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowRight'?1:-1)+buttons.length)%buttons.length;
+    buttons[next].focus();buttons[next].click();
+  }));
+  activateRoute();
   fetch('examples/synthetic-cases.json').then(response=>{if(!response.ok)throw new Error('Data unavailable');return response.json();}).then(payload=>{
     if(payload.synthetic!==true || !Array.isArray(payload.cases) || payload.dimension_labels?.length!==6)throw new Error('Invalid demo data');
     data=payload.cases;dimensions=payload.dimension_labels;
