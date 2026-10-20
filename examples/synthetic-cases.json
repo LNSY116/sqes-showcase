@@ -8,7 +8,17 @@
       "review_status": "複核完成",
       "illustrative_quality_score": 82,
       "illustrative_intent_score": 74,
-      "focus": "空間與日常通勤"
+      "focus": "空間與日常通勤",
+      "illustrative_dimensions": [
+        90,
+        82,
+        76,
+        86,
+        78,
+        80
+      ],
+      "fictional_customer_quote": "平日主要是通勤，週末希望能放下露營用品。",
+      "illustrative_follow_up": "安排空間展示，確認日常與週末的載物需求。"
     },
     {
       "case_id": "DEMO-002",
@@ -16,7 +26,17 @@
       "review_status": "複核完成",
       "illustrative_quality_score": 76,
       "illustrative_intent_score": 62,
-      "focus": "預算與保養"
+      "focus": "預算與保養",
+      "illustrative_dimensions": [
+        78,
+        80,
+        74,
+        72,
+        70,
+        82
+      ],
+      "fictional_customer_quote": "我想先了解總預算，還有後續保養的費用。",
+      "illustrative_follow_up": "提供費用明細，分開說明購車與持有成本。"
     },
     {
       "case_id": "DEMO-003",
@@ -24,7 +44,17 @@
       "review_status": "待複核",
       "illustrative_quality_score": 68,
       "illustrative_intent_score": 57,
-      "focus": "安全配備"
+      "focus": "安全配備",
+      "illustrative_dimensions": [
+        72,
+        66,
+        78,
+        60,
+        64,
+        68
+      ],
+      "fictional_customer_quote": "我比較在意安全配備，想知道有哪些提醒功能。",
+      "illustrative_follow_up": "釐清安全功能的使用情境，回看說明是否充分。"
     },
     {
       "case_id": "DEMO-004",
@@ -32,7 +62,17 @@
       "review_status": "複核完成",
       "illustrative_quality_score": 88,
       "illustrative_intent_score": 81,
-      "focus": "家庭乘坐需求"
+      "focus": "家庭乘坐需求",
+      "illustrative_dimensions": [
+        92,
+        90,
+        84,
+        90,
+        86,
+        86
+      ],
+      "fictional_customer_quote": "後座要放兒童座椅，希望全家一起試乘看看。",
+      "illustrative_follow_up": "安排家庭試乘，確認座椅與後座空間。"
     },
     {
       "case_id": "DEMO-005",
@@ -40,7 +80,17 @@
       "review_status": "待複核",
       "illustrative_quality_score": 73,
       "illustrative_intent_score": 66,
-      "focus": "試乘與比較"
+      "focus": "試乘與比較",
+      "illustrative_dimensions": [
+        76,
+        72,
+        70,
+        82,
+        68,
+        70
+      ],
+      "fictional_customer_quote": "我還想比較另外一款，試乘後再決定。",
+      "illustrative_follow_up": "整理比較重點，試乘後確認仍待解答的問題。"
     },
     {
       "case_id": "DEMO-006",
@@ -48,7 +98,25 @@
       "review_status": "複核完成",
       "illustrative_quality_score": 79,
       "illustrative_intent_score": 70,
-      "focus": "交車時間"
+      "focus": "交車時間",
+      "illustrative_dimensions": [
+        80,
+        78,
+        74,
+        76,
+        82,
+        84
+      ],
+      "fictional_customer_quote": "如果這個月決定，大約什麼時候可以交車？",
+      "illustrative_follow_up": "說明交付時程與前提，確認顧客可接受的日期。"
     }
+  ],
+  "dimension_labels": [
+    "需求探索",
+    "產品說明",
+    "價值連結",
+    "疑慮回應",
+    "體驗安排",
+    "後續跟進"
   ]
 }

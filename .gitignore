@@ -12,3 +12,9 @@
 !examples/
 !examples/README.md
 !examples/synthetic-cases.json
+
+!index.html
+!.nojekyll
+!assets/site.css
+!assets/site.js
+!assets/favicon.svg
