@@ -107,7 +107,40 @@
     const a=document.createElement('a');a.href=url;a.download='SQES_Synthetic_Demo.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
     $('download-status').textContent=`已準備 ${visible.length} 筆虛構資料下載（JSON）。`;
   });
-  const viewNames = ['overview','charts','checklist','insights'];
+  // Public interaction examples only: no scoring engine, weights, or model calls.
+  const tuningExamples = {
+    balanced:{name:'均衡檢視',purpose:'從需求理解、說明脈絡到後續安排，逐面向檢視。',emphasis:['均衡觀察','均衡觀察','均衡觀察']},
+    needs:{name:'需求導向',purpose:'示意優先檢視需求是否被理解，再對照說明與後續安排。',emphasis:['優先檢視','持續觀察','持續觀察']},
+    followup:{name:'跟進導向',purpose:'示意優先檢視後續安排是否具體，同時保留需求與說明的觀察。',emphasis:['持續觀察','持續觀察','優先檢視']}
+  };
+  const tuningVersions=[];
+  function renderTuning() {
+    const example=tuningExamples[$('tuning-preset').value];
+    $('tuning-purpose').textContent=example.purpose;
+    $('tuning-current-label').textContent=example.name+'（示意）';
+    $('tuning-comparison').innerHTML=['需求理解','說明脈絡','後續安排'].map((name,i)=>`<tr><th scope="row">${name}</th><td>均衡觀察</td><td class="${example.emphasis[i]==='優先檢視'?'tuning-priority':''}">${example.emphasis[i]}</td></tr>`).join('');
+  }
+  $('tuning-preset').addEventListener('change',()=>{renderTuning();$('tuning-message').textContent='已切換展示情境；案例分數維持原示意資料。';});
+  $('tuning-save').addEventListener('click',()=>{
+    const preset=$('tuning-preset').value,index=tuningVersions.length;
+    tuningVersions.push(preset);
+    if(index===0)$('tuning-history').replaceChildren();
+    const option=document.createElement('option');option.value=String(index);option.textContent=`示意版本 ${index+1} · ${tuningExamples[preset].name}`;
+    $('tuning-history').append(option);$('tuning-history').value=String(index);
+    $('tuning-history').disabled=false;$('tuning-restore').disabled=false;
+    $('tuning-message').textContent=`已保存示意版本 ${index+1}。僅限本次瀏覽，重新整理即清除。`;
+  });
+  $('tuning-restore').addEventListener('click',()=>{
+    const index=Number($('tuning-history').value),preset=tuningVersions[index];if(!preset)return;
+    $('tuning-preset').value=preset;renderTuning();
+    $('tuning-message').textContent=`已載入示意版本 ${index+1} · ${tuningExamples[preset].name}。`;
+  });
+  $('tuning-reset').addEventListener('click',()=>{
+    $('tuning-preset').value='balanced';renderTuning();
+    $('tuning-message').textContent='已回到均衡檢視；本次保存的示意版本仍可載入。';
+  });
+  renderTuning();
+  const viewNames = ['overview','charts','checklist','insights','tuning'];
   const aliases = {demo:'overview','case-explorer':'checklist','checklist-panel':'checklist','insights-panel':'insights',home:'about',approach:'about'};
   let currentView='overview';
   function activateRoute(scroll=false) {
@@ -117,6 +150,8 @@
     document.querySelectorAll('[data-page]').forEach(el=>el.hidden=el.dataset.page!==page);
     document.querySelectorAll('[data-view]').forEach(button=>{const active=button.dataset.view===currentView;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;});
     viewNames.forEach(name=>$(name).hidden=name!==currentView);
+    document.querySelector('.workspace-selector').hidden=currentView==='tuning';
+    document.querySelector('.filter-drawer').hidden=currentView==='tuning';
     document.querySelectorAll('header nav a').forEach(a=>{
       const active=(page==='workspace'&&a.hash==='#overview')||a.hash==='#'+page;
       if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');
