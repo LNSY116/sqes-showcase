@@ -68,4 +68,4 @@ FAB 指 Feature（特徵）、Advantage（優勢）、Benefit（利益）的銷�
 
 本倉庫不是完整軟體的開源發行，也不授予完整應用程式的使用授權。公開素材的說明見 [NOTICE.md](NOTICE.md)。
 
-GitHub Pages 提供系統介紹與獨立互動看板，支援顧問／狀態篩選、案例搜尋、案例洞察、圖表比較與虛構資料 JSON 下載。展示網頁的 HTML、CSS 與 JavaScript 可公開檢視，完整 SQES 應用程式仍另行維護。
+GitHub Pages 提供系統介紹與獨立互動看板，支援顧問／狀態篩選、案例搜尋、案例洞察、圖表比較、可展開的 SOP／FAB 點檢明細、顧客主題導覽、痛點與需求／偏好文字雲，以及虛構資料 JSON 下載。展示網頁的 HTML、CSS 與 JavaScript 可公開檢視，完整 SQES 應用程式仍另行維護。

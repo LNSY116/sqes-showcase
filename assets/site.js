@@ -1,7 +1,7 @@
 "use strict";
 (() => {
   const $ = id => document.getElementById(id);
-  let data = [], dimensions = [], selected = null, visible = [];
+  let data = [], dimensions = [], selected = null, visible = [], activeTopic = null;
   const esc = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const completed = item => item.review_status === '複核完成';
   const badge = status => `<span class="badge${status === '待複核' ? ' pending' : ''}">${esc(status)}</span>`;
@@ -13,6 +13,7 @@
       button.setAttribute('aria-pressed', String(active));
       button.closest('tr').classList.toggle('selected', active);
     });
+    renderExplorer(c);
     if (!c) {
       $('detail-heading').textContent = '案例洞察';
       $('detail-status').replaceChildren();
@@ -33,6 +34,45 @@
     const scores = values.map((v,i) => point(i,v).join(',')).join(' ');
     $('radar').innerHTML = `<svg class="radar-chart" viewBox="0 0 410 280" role="img" aria-label="${esc(c.case_id+' 示意服務面向：'+dimensions.map((label,i)=>label+' '+values[i]).join('、'))}"><title>${esc(c.case_id)} 虛構服務面向</title>${grid}${axes}<polygon points="${scores}" fill="#0c9175" fill-opacity="0.14" stroke="#0c9175" stroke-width="2"/>${values.map((v,i)=>{const [x,y]=point(i,v);return `<circle cx="${x}" cy="${y}" r="3" fill="#0c9175"/>`;}).join('')}</svg>`;
   }
+  const currentCase = () => visible.find(c => c.case_id === selected);
+  const proof = (c, ids, customerOnly = false) => ids.map(id => c.illustrative_dialogue.find(turn => turn.id === id)).filter(turn => turn && (!customerOnly || turn.speaker === '顧客'));
+  const quoteMarkup = turn => `<blockquote class="evidence-quote"><span>${esc(turn.id)} · ${esc(turn.speaker)} · 虛構對話</span><p>${esc(turn.text)}</p></blockquote>`;
+  const checkBadge = status => `<span class="badge ${status === '待確認' ? 'pending' : status === '未示範' ? 'not-shown' : ''}">${esc(status)}</span>`;
+  function renderChecklist() {
+    const c = currentCase();
+    if (!c) { $('check-count').textContent = '0 項'; $('checklist-content').innerHTML = '<p class="empty">目前沒有案例，請調整上方篩選條件。</p>'; return; }
+    const items = c.illustrative_checklist.filter(item => !$('check-status').value || item.status === $('check-status').value);
+    $('check-count').textContent = `${c.case_id} · 顯示 ${items.length} / ${c.illustrative_checklist.length} 項示範題目`;
+    $('checklist-content').innerHTML = items.length ? [...new Set(items.map(item=>item.category))].map(category => `<section class="check-group"><h4>${esc(category)}</h4>${items.filter(item=>item.category===category).map(item => `<details class="check-item"><summary><span class="check-facet">${esc(item.facet)}</span><span class="check-title">${esc(item.title)}</span>${checkBadge(item.status)}</summary><div class="check-body"><h5>示意判讀</h5><p>${esc(item.reason)}</p><h5>對話證據與脈絡</h5>${proof(c,item.evidence).map(quoteMarkup).join('')}</div></details>`).join('')}</section>`).join('') : '<p class="empty">此案例沒有符合這個判定狀態的題目。</p>';
+  }
+  function renderTopics() {
+    const c=currentCase();
+    if(!c){['topic-nav','pain-cloud','preference-cloud'].forEach(id=>$(id).replaceChildren());$('topic-evidence').innerHTML='<p class="empty">目前沒有案例，請調整上方篩選條件。</p>';return;}
+    const topics=c.illustrative_topics;
+    if(!topics.some(t=>t.id===activeTopic))activeTopic=topics[0]?.id;
+    const button=(t,cloud=false)=>`<button type="button" class="${cloud?'cloud-word':'topic-button'} ${t.kind==='痛點'?'pain-word':''} ${cloud&&t.evidence.length>1?'word-large':''}" data-topic="${esc(t.id)}" aria-pressed="${t.id===activeTopic}"><span>${esc(t.label)}</span><small>${cloud?t.evidence.length+' 段':esc(t.kind)+' · '+t.evidence.length+' 段原話'}</small></button>`;
+    $('topic-nav').innerHTML=topics.map(t=>button(t)).join('');
+    $('pain-cloud').innerHTML=topics.filter(t=>t.kind==='痛點').map(t=>button(t,true)).join('')||'<p class="empty">此示例未整理出明確痛點；不代表沒有疑慮。</p>';
+    $('preference-cloud').innerHTML=topics.filter(t=>t.kind==='需求與偏好').map(t=>button(t,true)).join('')||'<p class="empty">此示例沒有可顯示的明確偏好。</p>';
+    const topic=topics.find(t=>t.id===activeTopic);
+    $('topic-evidence').innerHTML=topic?`<p class="eyebrow">CUSTOMER EVIDENCE / 顧客原話</p><h4>${esc(topic.label)}</h4><p class="evidence-meta">${esc(c.case_id)} · ${esc(topic.kind)} · ${topic.evidence.length} 段支持發言</p><p class="topic-summary">${esc(topic.summary)}</p>${proof(c,topic.evidence,true).map(quoteMarkup).join('')}<div class="follow-up"><h5>跟進方向示意</h5><p>${esc(c.illustrative_follow_up)}</p></div>`:'<p class="empty">請選擇主題。</p>';
+  }
+  function renderExplorer(c) {
+    $('explorer-case').textContent=c?`${c.case_id} · ${c.advisor} · ${c.review_status} · 以下內容跟隨此案例`:'目前沒有符合篩選的案例';
+    $('explorer-select').replaceChildren(...visible.map(item=>{const option=document.createElement('option');option.value=item.case_id;option.textContent=`${item.case_id} · ${item.focus}`;return option;}));
+    $('explorer-select').value=c?.case_id??'';
+    ['explorer-select','check-status','expand-checks','collapse-checks'].forEach(id=>$(id).disabled=!c);
+    $('check-status').value='';activeTopic=null;
+    renderChecklist();renderTopics();
+  }
+  $('check-status').addEventListener('change',renderChecklist);
+  $('expand-checks').addEventListener('click',()=>document.querySelectorAll('.check-item').forEach(el=>el.open=true));
+  $('collapse-checks').addEventListener('click',()=>document.querySelectorAll('.check-item').forEach(el=>el.open=false));
+  $('explorer-select').addEventListener('change',()=>{selected=$('explorer-select').value;renderDetail();});
+  $('insights-panel').addEventListener('click',event=>{
+    const button=event.target.closest('[data-topic]');
+    if(button){const container=button.parentElement.id;activeTopic=button.dataset.topic;renderTopics();document.querySelector(`#${container} [data-topic="${activeTopic}"]`)?.focus({preventScroll:true});}
+  });
   function render() {
     const query = $('search').value.trim().toLocaleLowerCase();
     visible = data.filter(c => (!$('advisor').value || c.advisor === $('advisor').value) && (!$('status').value || c.review_status === $('status').value) && (!query || [c.case_id,c.advisor,c.focus].join(' ').toLocaleLowerCase().includes(query)));
