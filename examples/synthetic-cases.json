@@ -1,0 +1,54 @@
+{
+  "synthetic": true,
+  "purpose": "公開展示，人工編造，非實際評分或匯入資料",
+  "cases": [
+    {
+      "case_id": "DEMO-001",
+      "advisor": "示範顧問 A",
+      "review_status": "複核完成",
+      "illustrative_quality_score": 82,
+      "illustrative_intent_score": 74,
+      "focus": "空間與日常通勤"
+    },
+    {
+      "case_id": "DEMO-002",
+      "advisor": "示範顧問 B",
+      "review_status": "複核完成",
+      "illustrative_quality_score": 76,
+      "illustrative_intent_score": 62,
+      "focus": "預算與保養"
+    },
+    {
+      "case_id": "DEMO-003",
+      "advisor": "示範顧問 C",
+      "review_status": "待複核",
+      "illustrative_quality_score": 68,
+      "illustrative_intent_score": 57,
+      "focus": "安全配備"
+    },
+    {
+      "case_id": "DEMO-004",
+      "advisor": "示範顧問 A",
+      "review_status": "複核完成",
+      "illustrative_quality_score": 88,
+      "illustrative_intent_score": 81,
+      "focus": "家庭乘坐需求"
+    },
+    {
+      "case_id": "DEMO-005",
+      "advisor": "示範顧問 B",
+      "review_status": "待複核",
+      "illustrative_quality_score": 73,
+      "illustrative_intent_score": 66,
+      "focus": "試乘與比較"
+    },
+    {
+      "case_id": "DEMO-006",
+      "advisor": "示範顧問 C",
+      "review_status": "複核完成",
+      "illustrative_quality_score": 79,
+      "illustrative_intent_score": 70,
+      "focus": "交車時間"
+    }
+  ]
+}

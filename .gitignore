@@ -1,0 +1,14 @@
+# This repository contains only explicitly reviewed public presentation files.
+*
+!.gitignore
+!README.md
+!NOTICE.md
+!docs/
+!docs/PRODUCT_TOUR.md
+!docs/VALIDATION.md
+!assets/
+!assets/overview.svg
+!assets/demo-preview.svg
+!examples/
+!examples/README.md
+!examples/synthetic-cases.json
