@@ -107,39 +107,62 @@
     const a=document.createElement('a');a.href=url;a.download='SQES_Synthetic_Demo.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
     $('download-status').textContent=`已準備 ${visible.length} 筆虛構資料下載（JSON）。`;
   });
-  // Public interaction examples only: no scoring engine, weights, or model calls.
-  const tuningExamples = {
-    balanced:{name:'均衡檢視',purpose:'從需求理解、說明脈絡到後續安排，逐面向檢視。',emphasis:['均衡觀察','均衡觀察','均衡觀察']},
-    needs:{name:'需求導向',purpose:'示意優先檢視需求是否被理解，再對照說明與後續安排。',emphasis:['優先檢視','持續觀察','持續觀察']},
-    followup:{name:'跟進導向',purpose:'示意優先檢視後續安排是否具體，同時保留需求與說明的觀察。',emphasis:['持續觀察','持續觀察','優先檢視']}
-  };
-  const tuningVersions=[];
-  function renderTuning() {
-    const example=tuningExamples[$('tuning-preset').value];
-    $('tuning-purpose').textContent=example.purpose;
-    $('tuning-current-label').textContent=example.name+'（示意）';
-    $('tuning-comparison').innerHTML=['需求理解','說明脈絡','後續安排'].map((name,i)=>`<tr><th scope="row">${name}</th><td>均衡觀察</td><td class="${example.emphasis[i]==='優先檢視'?'tuning-priority':''}">${example.emphasis[i]}</td></tr>`).join('');
+  // Standalone fictional settings; never connected to the private scoring engine.
+  const demoDefaults=[20,20,20,20,20], demoLabels=['展示維度 A','展示維度 B','展示維度 C','展示維度 D','展示維度 E'];
+  let draftWeights=[...demoDefaults], appliedWeights=[...demoDefaults];
+  const tuningVersions=[], tuningLog=[];
+  const validWeights=w=>Array.isArray(w)&&w.length===5&&w.every(v=>Number.isInteger(v)&&v>=0&&v<=100)&&w.reduce((a,b)=>a+b,0)===100;
+  const tuningMessage=text=>{$('tuning-message').textContent=text;};
+  function setTuningTab(key,focus=false) {
+    document.querySelectorAll('[data-tune-tab]').forEach(b=>{const active=b.dataset.tuneTab===key;b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;$('tune-'+b.dataset.tuneTab).hidden=!active;});
+    if(focus)$('tune-tab-'+key).focus({preventScroll:true});
   }
-  $('tuning-preset').addEventListener('change',()=>{renderTuning();$('tuning-message').textContent='已切換展示情境；案例分數維持原示意資料。';});
+  document.querySelectorAll('[data-tune-tab]').forEach(b=>b.addEventListener('click',()=>setTuningTab(b.dataset.tuneTab)));
+  function logTuning(action) {
+    tuningLog.unshift({time:new Date().toLocaleTimeString('zh-TW',{hour12:false}),action});
+    $('tuning-log').innerHTML=tuningLog.map(entry=>`<li><time>${esc(entry.time)}</time><span>${esc(entry.action)}</span></li>`).join('');
+  }
+  $('tuning-inputs').innerHTML=demoLabels.map((label,i)=>`<div class="weight-row"><label for="weight-${i}">${label}</label><input id="weight-slider-${i}" type="range" min="0" max="100" step="1" value="20" aria-label="${label} 配分滑桿" data-weight="${i}"/><input id="weight-${i}" type="number" min="0" max="100" step="1" value="20" aria-describedby="tuning-total" data-weight="${i}"/></div>`).join('');
+  function renderTuning(syncInputs=false) {
+    const valid=validWeights(draftWeights),total=draftWeights.reduce((sum,v)=>sum+(Number.isFinite(v)?v:0),0);
+    $('tuning-total').textContent=valid?'配分合計 100 / 100 · 可以套用':`配分合計 ${Number(total.toFixed(2))} / 100 · 請填入 0–100 整數，合計須為 100`;
+    $('tuning-total').classList.toggle('invalid',!valid);
+    ['tuning-save','tuning-export'].forEach(id=>$(id).disabled=!valid);
+    draftWeights.forEach((v,i)=>{const field=$('weight-'+i);field.setAttribute('aria-invalid',String(!Number.isInteger(v)||v<0||v>100));if(syncInputs)field.value=Number.isFinite(v)?v:'';if(Number.isFinite(v))$('weight-slider-'+i).value=v;});
+    $('tuning-comparison').innerHTML=demoLabels.map((label,i)=>{const v=draftWeights[i],delta=Number.isFinite(v)?Number((v-appliedWeights[i]).toFixed(2)):null;return `<tr><th scope="row">${label}</th><td>${appliedWeights[i]}</td><td>${Number.isFinite(v)?v:'—'}</td><td class="${delta!==null&&delta!==0?'tuning-priority':''}">${delta===null?'—':delta>0?'+'+delta:delta===0?'持平':delta}</td></tr>`;}).join('');
+  }
+  $('tuning-inputs').addEventListener('input',event=>{const input=event.target;if(!input.matches('[data-weight]'))return;const i=Number(input.dataset.weight);draftWeights[i]=input.valueAsNumber;if(input.type==='range')$('weight-'+i).value=input.value;renderTuning();tuningMessage('草稿已修改，請確認比較後套用。');});
+  function loadDraft(weights,message) {draftWeights=[...weights];$('tuning-name').value='';renderTuning(true);setTuningTab('config',true);tuningMessage(message);}
+  $('tuning-reset').addEventListener('click',()=>{loadDraft(demoDefaults,'預設配分已載入草稿，確認後可套用；存檔仍保留。');logTuning('恢復示範預設至草稿');});
   $('tuning-save').addEventListener('click',()=>{
-    const preset=$('tuning-preset').value,index=tuningVersions.length;
-    tuningVersions.push(preset);
-    if(index===0)$('tuning-history').replaceChildren();
-    const option=document.createElement('option');option.value=String(index);option.textContent=`示意版本 ${index+1} · ${tuningExamples[preset].name}`;
-    $('tuning-history').append(option);$('tuning-history').value=String(index);
-    $('tuning-history').disabled=false;$('tuning-restore').disabled=false;
-    $('tuning-message').textContent=`已保存示意版本 ${index+1}。僅限本次瀏覽，重新整理即清除。`;
+    if(!validWeights(draftWeights))return;
+    const index=tuningVersions.length,name=$('tuning-name').value.trim()||`展示版本 ${index+1}`,version={name,weights:[...draftWeights]};
+    tuningVersions.push(version);appliedWeights=[...version.weights];
+    $('tuning-active').textContent='已套用：'+name;$('tuning-version-count').textContent=tuningVersions.length;
+    $('tuning-versions').innerHTML=tuningVersions.map((v,i)=>`<article class="tuning-version"><div><h5>${esc(v.name)}</h5><p>版本 ${i+1} · 展示維度 A–E：${v.weights.join(' / ')}</p></div><button class="secondary" type="button" data-restore="${i}" aria-label="載入版本 ${i+1} 至草稿">載入至草稿</button></article>`).reverse().join('');
+    renderTuning();logTuning(`套用並保存：${name}`);tuningMessage(`已套用並保存「${name}」。可至權重存檔庫載入；案例分數不變。`);
   });
-  $('tuning-restore').addEventListener('click',()=>{
-    const index=Number($('tuning-history').value),preset=tuningVersions[index];if(!preset)return;
-    $('tuning-preset').value=preset;renderTuning();
-    $('tuning-message').textContent=`已載入示意版本 ${index+1} · ${tuningExamples[preset].name}。`;
+  $('tuning-versions').addEventListener('click',event=>{const button=event.target.closest('[data-restore]');if(!button)return;const v=tuningVersions[Number(button.dataset.restore)];if(!v)return;loadDraft(v.weights,`已載入「${v.name}」至草稿，確認後再套用。`);logTuning(`載入版本至草稿：${v.name}`);});
+  $('tuning-suggest').addEventListener('click',()=>{$('tuning-suggestion').hidden=false;tuningMessage('已展開固定示範建議，可檢視後載入草稿。');});
+  $('tuning-use-suggestion').addEventListener('click',()=>{loadDraft([25,15,20,25,15],'固定示範建議已載入草稿；尚未套用。');logTuning('載入固定示範建議至草稿');});
+  $('tuning-export').addEventListener('click',()=>{
+    if(!validWeights(draftWeights))return;
+    const payload={format:'sqes-public-tuning-v1',synthetic:true,weights:[...draftWeights]};
+    const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)+'\n'],{type:'application/json;charset=utf-8'}));
+    const a=document.createElement('a');a.href=url;a.download='SQES_Demo_Weights.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
+    logTuning('匯出展示草稿 JSON');tuningMessage('已準備展示草稿 JSON 下載；可由權重存檔庫匯入。');
   });
-  $('tuning-reset').addEventListener('click',()=>{
-    $('tuning-preset').value='balanced';renderTuning();
-    $('tuning-message').textContent='已回到均衡檢視；本次保存的示意版本仍可載入。';
+  $('tuning-import').addEventListener('change',async event=>{
+    const input=event.target,file=input.files[0];if(!file)return;
+    try {
+      if(file.size>10000)throw new Error('size');
+      const payload=JSON.parse(await file.text());
+      if(!payload||payload.format!=='sqes-public-tuning-v1'||payload.synthetic!==true||Object.keys(payload).sort().join(',')!=='format,synthetic,weights'||!validWeights(payload.weights))throw new Error('format');
+      loadDraft(payload.weights,'展示設定已匯入草稿，確認後再套用。');logTuning('匯入公開展示設定至草稿');
+    } catch {tuningMessage('無法匯入：請使用本頁匯出的展示 JSON，五項整數配分須合計 100，檔案需小於 10 KB。');}
+    finally {input.value='';}
   });
-  renderTuning();
+  renderTuning(true);
   const viewNames = ['overview','charts','checklist','insights','tuning'];
   const aliases = {demo:'overview','case-explorer':'checklist','checklist-panel':'checklist','insights-panel':'insights',home:'about',approach:'about'};
   let currentView='overview';
